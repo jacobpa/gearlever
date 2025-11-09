@@ -550,7 +550,7 @@ class GitlabUpdater(UpdateManager):
         return regex
 
     def fetch_target_asset(self):
-        rel_url = f'https://gitlab.com/api/v4/projects/{self.url_data["username"]}/releases'
+        rel_url = f'{self.url_data["url_base"]}/api/v4/projects/{self.url_data["username"]}/releases'
         try:
             rel_data_resp = requests.get(rel_url)
             rel_data_resp.raise_for_status()
