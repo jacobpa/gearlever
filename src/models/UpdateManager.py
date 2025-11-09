@@ -473,28 +473,27 @@ class GitlabUpdater(UpdateManager):
         self.embedded = False
 
     def get_url_data(url: str):
-        paths = []
-        if url.startswith('https://'):
-            logging.debug(f'GitlabUpdater: found http url, trying to detect gitlab data')
-            urldata = urlsplit(url)
+        if not url.startswith('https://'):
+            return False
 
-            if urldata.netloc != 'gitlab.com':
-                return False
+        logging.debug(f'GitlabUpdater: found https url, trying to detect gitlab data')
 
-            paths = urldata.path.split('/')
+        gitlab_exp = r"^(https://[^/]+(?:/[^/]+)*)/api/v4/projects/([^/]+)/packages/generic(?:/[^/]+){2}/(.+)$"
+        gitlab_match = re.match(gitlab_exp, url)
 
-            if len(paths) != 10:
-                return False
+        if not gitlab_match:
+            return False
 
-            if paths[1] != 'api' or paths[2] != 'v4' or paths[5] != 'packages':
-                return False
+        (base_url, project_id, file_name) = gitlab_match.groups()
 
-            return {
-                'username': paths[4],
-                'filename': paths[9],
-            }
+        if base_url != 'https://gitlab.com' and not GitlabUpdater.contains_gitlab_headers(base_url):
+            return False
 
-        return False
+        return {
+            'url_base': base_url,
+            'username': project_id,
+            'filename': file_name,
+        }
 
     def contains_gitlab_headers(base_url: str) -> bool:
         try:
