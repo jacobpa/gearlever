@@ -496,6 +496,15 @@ class GitlabUpdater(UpdateManager):
 
         return False
 
+    def contains_gitlab_headers(base_url: str) -> bool:
+        try:
+            head_resp = requests.head(base_url)
+            head_resp.raise_for_status()
+            return  "x-gitlab-meta" in head_resp.headers.keys()
+        except Exception as e:
+            logging.error(e)
+            return False
+
     def can_handle_link(url: str):
         return GitlabUpdater.get_url_data(url) != False
 
