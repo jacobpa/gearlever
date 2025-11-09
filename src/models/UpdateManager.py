@@ -635,26 +635,23 @@ class CodebergUpdater(UpdateManager):
 
     def get_url_data(url: str):
         # Example: https://codeberg.org/sonusmix/sonusmix/releases/download/v0.1.1/org.sonusmix.Sonusmix-0.1.1.AppImage
-        paths = []
-        if url.startswith('https://'):
-            logging.debug(f'CodebergUpdater: found http url, trying to detect codeberg data')
-            urldata = urlsplit(url)
+        if not url.startswith('https://'):
+            return False
+        logging.debug(f'CodebergUpdater: found https url, trying to detect codeberg data')
+        forgejo_regexp = r"^(https://[^/]+(?:/[^/]+)*)/([^/]+)/([^/]+)/releases/download/[^/]+/(.+)$"
+        forgejo_match = re.match(forgejo_regexp, url)
 
-            if urldata.netloc != 'codeberg.org':
-                return False
+        if not forgejo_match:
+            return False
+        
+        (base_url, user_name, repo, file_name) = forgejo_match.groups()
 
-            paths = urldata.path.split('/')
-
-            if len(paths) != 7:
-                return False
-
-            return {
-                'username': paths[1],
-                'repo': paths[2],
-                'filename': paths[6],
-            }
-
-        return False
+        return {
+            'base_url': base_url,
+            'username': user_name,
+            'repo': repo,
+            'filename': file_name,
+        }
 
     def can_handle_link(url: str):
         return CodebergUpdater.get_url_data(url) != False
@@ -702,7 +699,7 @@ class CodebergUpdater(UpdateManager):
         return regex
 
     def fetch_target_asset(self):
-        rel_url = f'https://codeberg.org/api/v1/repos/{self.url_data["username"]}/{self.url_data["repo"]}/releases?pre-release=exclude&draft=exclude'
+        rel_url = f'{self.url_data["base_url"]}/api/v1/repos/{self.url_data["username"]}/{self.url_data["repo"]}/releases?pre-release=exclude&draft=exclude'
 
         try:
             rel_data_resp = requests.get(rel_url)
