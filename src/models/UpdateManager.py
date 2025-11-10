@@ -483,26 +483,26 @@ class GitlabUpdater(UpdateManager):
 
     @staticmethod
     def get_url_data(url: str):
+        # Example: https://gitlab.com/api/v4/projects/24386000/packages/generic/librewolf/143.0.3-1/LibreWolf.x86_64.AppImage
         if not url.startswith('https://'):
             return
-
         logging.debug('GitlabUpdater: found https url, trying to detect gitlab data')
 
-        gitlab_exp = r"^(https://[^/]+(?:/[^/]+)*)/api/v4/projects/([^/]+)/packages/generic(?:/[^/]+){2}/(.+)$"
-        gitlab_match = re.match(gitlab_exp, url)
-
-        if not gitlab_match:
+        url_parts = urlsplit(url)
+        if "/api/v4/projects/" not in url_parts.path:
             return
 
-        (base_url, project_id, file_name) = gitlab_match.groups()
-
-        if base_url != 'https://gitlab.com' and not GitlabUpdater.contains_gitlab_headers(base_url):
+        base_path, path = url_parts.path.split('/api/v4/projects/')
+        split_path = path.split("/")
+        if len(split_path) != 6 or split_path[1] != "packages":
             return
+        
+        project_id, _, _package_type, _name, _version, filename = split_path
 
         return {
-            'url_base': base_url,
+            'url_base': f'{url_parts.scheme}://{url_parts.netloc}{base_path}',
             'username': project_id,
-            'filename': file_name,
+            'filename': filename
         }
 
     @staticmethod
@@ -651,19 +651,23 @@ class CodebergUpdater(UpdateManager):
         if not url.startswith('https://'):
             return
         logging.debug('CodebergUpdater: found https url, trying to detect codeberg data')
-        forgejo_regexp = r"^(https://[^/]+(?:/[^/]+)*)/([^/]+)/([^/]+)/releases/download/[^/]+/(.+)$"
-        forgejo_match = re.match(forgejo_regexp, url)
 
-        if not forgejo_match:
+        url_parts = urlsplit(url)
+        if "/releases/download/" not in url_parts.path:
             return
         
-        (base_url, user_name, repo, file_name) = forgejo_match.groups()
+        split_path = url_parts.path.split("/") 
+        if len(split_path) < 7 or 'releases' != split_path[-4] and 'download' != split_path[-5]:
+            return
+        
+        base_path = '/'.join(split_path[:-6])
+        user, repo, *_, _tag, file = split_path[-6:]
 
         return {
-            'base_url': base_url,
-            'username': user_name,
+            'base_url': f'{url_parts.scheme}://{url_parts.netloc}{base_path}',
+            'username': user,
             'repo': repo,
-            'filename': file_name,
+            'filename': file,
         }
 
     @staticmethod
