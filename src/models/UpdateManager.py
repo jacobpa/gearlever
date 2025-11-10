@@ -290,7 +290,7 @@ class GithubUpdater(UpdateManager):
         return url
 
     @staticmethod
-    def get_url_data(url: str) -> Optional[dict[str, str]]:
+    def get_url_data(url: str):
         # Format gh-releases-zsync|probono|AppImages|latest|Subsurface-*x86_64.AppImage.zsync
         # https://github.com/AppImage/AppImageSpec/blob/master/draft.md#github-releases
 
@@ -482,7 +482,7 @@ class GitlabUpdater(UpdateManager):
         self.embedded = False
 
     @staticmethod
-    def get_url_data(url: str) -> Optional[dict[str, str]]:
+    def get_url_data(url: str):
         if not url.startswith('https://'):
             return
 
@@ -646,7 +646,7 @@ class CodebergUpdater(UpdateManager):
         self.embedded = False
 
     @staticmethod
-    def get_url_data(url: str) -> Optional[dict[str, str]]:
+    def get_url_data(url: str):
         # Example: https://codeberg.org/sonusmix/sonusmix/releases/download/v0.1.1/org.sonusmix.Sonusmix-0.1.1.AppImage
         if not url.startswith('https://'):
             return
