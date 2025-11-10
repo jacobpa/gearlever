@@ -43,13 +43,13 @@ class UpdateManager(ABC):
     def cancel_download(self):
         pass
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def get_url_data(url: str) -> Optional[dict[str, str]]:
         return
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def can_handle_link(url: str) -> bool:
         pass
 
