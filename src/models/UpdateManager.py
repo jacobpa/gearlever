@@ -44,6 +44,12 @@ class UpdateManager(ABC):
         pass
 
     @abstractmethod
+    @staticmethod
+    def get_url_data(url: str) -> Optional[dict[str, str]]:
+        return
+
+    @abstractmethod
+    @staticmethod
     def can_handle_link(url: str) -> bool:
         pass
 
@@ -149,6 +155,7 @@ class StaticFileUpdater(UpdateManager):
         if embedded:
             self.embedded = re.sub(r"\.zsync$", "", url)
 
+    @staticmethod
     def can_handle_link(url: str):
         if not url_is_valid(url):
             return False
@@ -282,7 +289,8 @@ class GithubUpdater(UpdateManager):
         url += f'/releases/download/{url_data["tag_name"]}/{url_data["filename"]}'
         return url
 
-    def get_url_data(url: str):
+    @staticmethod
+    def get_url_data(url: str) -> Optional[dict[str, str]]:
         # Format gh-releases-zsync|probono|AppImages|latest|Subsurface-*x86_64.AppImage.zsync
         # https://github.com/AppImage/AppImageSpec/blob/master/draft.md#github-releases
 
@@ -292,15 +300,15 @@ class GithubUpdater(UpdateManager):
             urldata = urlsplit(url)
 
             if urldata.netloc != 'github.com':
-                return False
+                return
 
             paths = urldata.path.split('/')
 
             if len(paths) != 7:
-                return False
+                return
 
             if paths[3] != 'releases' or paths[4] != 'download':
-                return False
+                return
 
             rel_name = 'latest'
             tag_name = paths[5]
@@ -311,7 +319,7 @@ class GithubUpdater(UpdateManager):
         items = url.split('|')
 
         if len(items) != 5:
-            return False
+            return
 
         return {
             'username': items[1],
@@ -321,8 +329,9 @@ class GithubUpdater(UpdateManager):
             'tag_name': tag_name
         }
 
+    @staticmethod
     def can_handle_link(url: str):
-        return GithubUpdater.get_url_data(url) != False
+        return GithubUpdater.get_url_data(url) is not None
 
     def download(self, status_update_cb) -> str:
         target_asset = self.fetch_target_asset()
@@ -472,22 +481,23 @@ class GitlabUpdater(UpdateManager):
 
         self.embedded = False
 
-    def get_url_data(url: str):
+    @staticmethod
+    def get_url_data(url: str) -> Optional[dict[str, str]]:
         if not url.startswith('https://'):
-            return False
+            return
 
-        logging.debug(f'GitlabUpdater: found https url, trying to detect gitlab data')
+        logging.debug('GitlabUpdater: found https url, trying to detect gitlab data')
 
         gitlab_exp = r"^(https://[^/]+(?:/[^/]+)*)/api/v4/projects/([^/]+)/packages/generic(?:/[^/]+){2}/(.+)$"
         gitlab_match = re.match(gitlab_exp, url)
 
         if not gitlab_match:
-            return False
+            return
 
         (base_url, project_id, file_name) = gitlab_match.groups()
 
         if base_url != 'https://gitlab.com' and not GitlabUpdater.contains_gitlab_headers(base_url):
-            return False
+            return
 
         return {
             'url_base': base_url,
@@ -495,6 +505,7 @@ class GitlabUpdater(UpdateManager):
             'filename': file_name,
         }
 
+    @staticmethod
     def contains_gitlab_headers(base_url: str) -> bool:
         try:
             head_resp = requests.head(base_url)
@@ -504,8 +515,9 @@ class GitlabUpdater(UpdateManager):
             logging.error(e)
             return False
 
+    @staticmethod
     def can_handle_link(url: str):
-        return GitlabUpdater.get_url_data(url) != False
+        return GitlabUpdater.get_url_data(url) is not None
 
     def download(self, status_update_cb) -> str:
         target_asset = self.fetch_target_asset()
@@ -633,16 +645,17 @@ class CodebergUpdater(UpdateManager):
 
         self.embedded = False
 
-    def get_url_data(url: str):
+    @staticmethod
+    def get_url_data(url: str) -> Optional[dict[str, str]]:
         # Example: https://codeberg.org/sonusmix/sonusmix/releases/download/v0.1.1/org.sonusmix.Sonusmix-0.1.1.AppImage
         if not url.startswith('https://'):
-            return False
-        logging.debug(f'CodebergUpdater: found https url, trying to detect codeberg data')
+            return
+        logging.debug('CodebergUpdater: found https url, trying to detect codeberg data')
         forgejo_regexp = r"^(https://[^/]+(?:/[^/]+)*)/([^/]+)/([^/]+)/releases/download/[^/]+/(.+)$"
         forgejo_match = re.match(forgejo_regexp, url)
 
         if not forgejo_match:
-            return False
+            return
         
         (base_url, user_name, repo, file_name) = forgejo_match.groups()
 
@@ -653,8 +666,9 @@ class CodebergUpdater(UpdateManager):
             'filename': file_name,
         }
 
+    @staticmethod
     def can_handle_link(url: str):
-        return CodebergUpdater.get_url_data(url) != False
+        return CodebergUpdater.get_url_data(url) is not None
 
     def download(self, status_update_cb) -> str:
         target_asset = self.fetch_target_asset()
